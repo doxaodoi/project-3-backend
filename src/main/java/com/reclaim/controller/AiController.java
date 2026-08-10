@@ -47,6 +47,28 @@ public class AiController {
         }
     }
 
+    /**
+     * AI Natural-Language Search: parse a plain-English query into structured filters.
+     * e.g. "black phone lost near JQB last week" → {type: "LOST", category: "Electronics", ...}
+     */
+    @PostMapping("/parse-search")
+    public ResponseEntity<?> parseSearch(@RequestBody Map<String, String> body) {
+        String query = body.get("query");
+        if (query == null || query.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "query is required"));
+        }
+
+        if (!aiService.isAvailable()) {
+            return ResponseEntity.ok(Map.of("filters", Map.of(), "aiParsed", false));
+        }
+
+        Map<String, String> filters = aiService.parseSearch(query);
+        if (filters != null) {
+            return ResponseEntity.ok(Map.of("filters", filters, "aiParsed", true));
+        }
+        return ResponseEntity.ok(Map.of("filters", Map.of(), "aiParsed", false));
+    }
+
     /** Check if AI features are available. */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Boolean>> status() {

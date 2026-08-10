@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/items/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/locations/**").permitAll()
+                .requestMatchers("/api/ai/parse-search").permitAll()
+                .requestMatchers("/api/ai/status").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

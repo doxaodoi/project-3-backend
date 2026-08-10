@@ -125,6 +125,76 @@ public class AiService {
     }
 
     /**
+     * Parse a natural-language search query into structured filter parameters.
+     * e.g. "black phone lost near JQB last week" → {type: "LOST", category: "Electronics", color: "black", location: "JQB (Dept. of CS)", ...}
+     */
+    public java.util.Map<String, String> parseSearch(String query) {
+        if (!isAvailable()) return null;
+
+        try {
+            String today = java.time.LocalDate.now().toString();
+            String prompt = String.format("""
+                You are a search parser for a campus lost & found system at the University of Ghana, Legon.
+                Today's date is %s.
+
+                Parse this user search into structured filters. Respond with ONLY a JSON object (no markdown, no backticks).
+                Only include fields you can confidently extract. Omit fields you're unsure about.
+
+                {
+                  "type": "LOST or FOUND (if they say lost/found/missing/misplaced → LOST, if they say found/spotted/handed in → FOUND, else omit)",
+                  "category": "exactly one of: Electronics, Keys & Access, Bags & Wallets, Clothing, Books & Notes, ID & Documents, Water Bottles, Jewelry, Sports Equipment, Other",
+                  "location": "exactly one of: Balme Library, Bush Canteen, JQB (Dept. of CS), Great Hall, Main Gate, Legon Hall, Akuafo Hall, Pentagon Hall, N Block, Security Office, Science Block, Athletic Oval",
+                  "color": "primary color mentioned",
+                  "q": "remaining keywords for text search (NOT the color/category/location — just item-specific words like brand, model, distinguishing features)",
+                  "dateFrom": "YYYY-MM-DD (interpret 'today', 'yesterday', 'last week', 'Monday', etc. relative to today)",
+                  "dateTo": "YYYY-MM-DD"
+                }
+
+                User's search: "%s"
+                """, today, query.replace("\"", "'"));
+
+            String requestBody = mapper.writeValueAsString(new java.util.LinkedHashMap<>() {{
+                put("model", model);
+                put("max_tokens", 256);
+                put("messages", List.of(new java.util.LinkedHashMap<>() {{
+                    put("role", "user");
+                    put("content", prompt);
+                }}));
+            }});
+
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(API_URL))
+                .header("Content-Type", "application/json")
+                .header("x-api-key", apiKey)
+                .header("anthropic-version", "2023-06-01")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonNode root = mapper.readTree(response.body());
+                String text = root.path("content").get(0).path("text").asText();
+                JsonNode result = mapper.readTree(text);
+
+                var filters = new java.util.LinkedHashMap<String, String>();
+                result.fields().forEachRemaining(entry -> {
+                    if (!entry.getValue().isNull() && !entry.getValue().asText().isBlank()) {
+                        filters.put(entry.getKey(), entry.getValue().asText());
+                    }
+                });
+                return filters;
+            } else {
+                log.warn("Claude API parse-search returned status {}", response.statusCode());
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("AI parse-search failed", e);
+            return null;
+        }
+    }
+
+    /**
      * Generate a human-readable explanation of why two items might be a match.
      */
     public String explainMatch(String lostTitle, String lostDesc, String lostCategory,
