@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: reclaim-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: JAVA_TOOL_OPTIONS
+        value: "-Xmx256m"
