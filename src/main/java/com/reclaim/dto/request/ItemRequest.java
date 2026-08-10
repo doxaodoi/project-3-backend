@@ -18,6 +18,7 @@ public class ItemRequest {
     private String description;
     private Long categoryId;
     private Long locationId;
+    private String locationName; // free-text location (geocoded on frontend)
     private String heldAt;
     private Double latitude;
     private Double longitude;
