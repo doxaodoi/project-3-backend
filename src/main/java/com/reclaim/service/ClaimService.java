@@ -36,6 +36,10 @@ public class ClaimService {
             throw ApiException.badRequest("You cannot claim your own item");
         }
 
+        if (claimRepo.existsByItemIdAndClaimantId(itemId, claimant.getId())) {
+            throw ApiException.badRequest("You have already submitted a claim for this item");
+        }
+
         Claim claim = Claim.builder()
             .item(item)
             .claimant(claimant)
