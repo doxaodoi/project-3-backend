@@ -7,8 +7,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Provides the CorsConfigurationSource bean used by Spring Security's
@@ -16,6 +16,10 @@ import java.util.stream.Collectors;
  * handled WITHIN the security filter chain — before authentication runs —
  * so authenticated endpoints (like /api/ai/describe, /api/admin/**)
  * don't reject the browser's preflight.
+ *
+ * Set the CORS_ORIGINS env var on the backend service to the frontend URL,
+ * e.g. https://reclaim-br0f.onrender.com
+ * Multiple origins can be comma-separated.
  */
 @Configuration
 public class CorsConfig {
@@ -23,25 +27,10 @@ public class CorsConfig {
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
 
-    /**
-     * Always-allowed origins so things work even if the CORS_ORIGINS env var
-     * is missing or stale on Render.
-     */
-    private static final List<String> BUILT_IN_ORIGINS = List.of(
-        "http://localhost:3000",
-        "https://reclaim-br0f.onrender.com"
-    );
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        // Merge env-var origins with built-in list (de-duplicated)
-        Set<String> origins = new LinkedHashSet<>(BUILT_IN_ORIGINS);
-        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
-            origins.addAll(Arrays.asList(allowedOrigins.split(",")));
-        }
-
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(new ArrayList<>(origins));
+        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
