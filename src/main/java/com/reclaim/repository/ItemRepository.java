@@ -58,4 +58,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     @Query("SELECT i.location.name, COUNT(i) FROM Item i WHERE i.location IS NOT NULL GROUP BY i.location.name ORDER BY COUNT(i) DESC")
     List<Object[]> countByLocation();
+
+    @Query("SELECT i.location.name, COUNT(i) FROM Item i WHERE i.location IS NOT NULL AND i.type = :type GROUP BY i.location.name ORDER BY COUNT(i) DESC")
+    List<Object[]> countByLocationAndType(@Param("type") String type);
 }

@@ -10,4 +10,6 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
     @Query("SELECT c FROM Conversation c WHERE c.userA.id = :userId OR c.userB.id = :userId ORDER BY c.lastMessageAt DESC NULLS LAST")
     List<Conversation> findByUserId(@Param("userId") Long userId);
+
+    List<Conversation> findByItemId(Long itemId);
 }

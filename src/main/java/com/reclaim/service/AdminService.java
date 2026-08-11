@@ -47,14 +47,19 @@ public class AdminService {
         }
         stats.put("byCategory", categoryMap);
 
-        // Location breakdown (for heatmap)
-        List<Object[]> byLocation = itemRepo.countByLocation();
-        Map<String, Long> locationMap = new LinkedHashMap<>();
-        for (Object[] row : byLocation) {
-            locationMap.put((String) row[0], (Long) row[1]);
-        }
-        stats.put("byLocation", locationMap);
+        // Location breakdown (for heatmap) — combined + split by type
+        stats.put("byLocation", toLocationMap(itemRepo.countByLocation()));
+        stats.put("byLocationLost", toLocationMap(itemRepo.countByLocationAndType("LOST")));
+        stats.put("byLocationFound", toLocationMap(itemRepo.countByLocationAndType("FOUND")));
 
         return stats;
+    }
+
+    private Map<String, Long> toLocationMap(List<Object[]> rows) {
+        Map<String, Long> map = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            map.put((String) row[0], (Long) row[1]);
+        }
+        return map;
     }
 }

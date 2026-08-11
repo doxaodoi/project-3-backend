@@ -23,16 +23,24 @@ public class ItemService {
     private final LocationRepository locationRepo;
     private final TagRepository tagRepo;
     private final MatchRepository matchRepo;
+    private final ClaimRepository claimRepo;
+    private final ConversationRepository conversationRepo;
+    private final MessageRepository messageRepo;
     private final MatchService matchService;
 
     public ItemService(ItemRepository itemRepo, CategoryRepository categoryRepo,
                        LocationRepository locationRepo, TagRepository tagRepo,
-                       MatchRepository matchRepo, @Lazy MatchService matchService) {
+                       MatchRepository matchRepo, ClaimRepository claimRepo,
+                       ConversationRepository conversationRepo, MessageRepository messageRepo,
+                       @Lazy MatchService matchService) {
         this.itemRepo = itemRepo;
         this.categoryRepo = categoryRepo;
         this.locationRepo = locationRepo;
         this.tagRepo = tagRepo;
         this.matchRepo = matchRepo;
+        this.claimRepo = claimRepo;
+        this.conversationRepo = conversationRepo;
+        this.messageRepo = messageRepo;
         this.matchService = matchService;
     }
 
@@ -155,6 +163,23 @@ public class ItemService {
                 && !"ADMIN".equals(currentUser.getRole())) {
             throw ApiException.forbidden("You can only delete your own reports");
         }
+
+        // Remove dependent rows first to avoid FK constraint violations.
+        // Conversations tied to this item (with their messages).
+        List<Conversation> convs = conversationRepo.findByItemId(id);
+        for (Conversation conv : convs) {
+            messageRepo.deleteAll(
+                messageRepo.findByConversationIdOrderByCreatedAtAsc(conv.getId()));
+        }
+        conversationRepo.deleteAll(convs);
+
+        // Claims and matches referencing this item.
+        claimRepo.deleteAll(claimRepo.findByItemId(id));
+        matchRepo.deleteAll(matchRepo.findByItemId(id));
+
+        // Clear tag associations (join table); photos cascade via JPA.
+        item.getTags().clear();
+
         itemRepo.delete(item);
     }
 
