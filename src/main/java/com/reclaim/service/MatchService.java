@@ -145,8 +145,8 @@ public class MatchService {
 
     /** Jaccard similarity on word sets. */
     private double textSimilarity(String a, String b) {
-        Set<String> wordsA = Set.of(a.split("\\W+"));
-        Set<String> wordsB = Set.of(b.split("\\W+"));
+        Set<String> wordsA = new java.util.HashSet<>(java.util.Arrays.asList(a.split("\\W+")));
+        Set<String> wordsB = new java.util.HashSet<>(java.util.Arrays.asList(b.split("\\W+")));
         if (wordsA.isEmpty() || wordsB.isEmpty()) return 0;
 
         long intersection = wordsA.stream().filter(wordsB::contains).count();
