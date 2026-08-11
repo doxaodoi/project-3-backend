@@ -62,6 +62,16 @@ public class ItemService {
         return ItemResponse.from(item, mc);
     }
 
+    /**
+     * Admin item listing. Mapping happens inside this transaction so lazy
+     * associations (category, location, tags, photos, reporter) resolve —
+     * OSIV is disabled, so mapping in the controller would fail.
+     */
+    @Transactional(readOnly = true)
+    public Page<ItemResponse> adminList(Pageable pageable) {
+        return itemRepo.findAll(pageable).map(ItemResponse::from);
+    }
+
     @Transactional
     public ItemResponse create(ItemRequest req, User reporter) {
         Item item = Item.builder()

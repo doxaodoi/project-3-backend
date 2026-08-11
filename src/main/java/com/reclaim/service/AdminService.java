@@ -1,7 +1,9 @@
 package com.reclaim.service;
 
+import com.reclaim.dto.response.ClaimResponse;
 import com.reclaim.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,6 +55,13 @@ public class AdminService {
         stats.put("byLocationFound", toLocationMap(itemRepo.countByLocationAndType("FOUND")));
 
         return stats;
+    }
+
+    /** Pending claims for admin review — mapped in-transaction (OSIV is off). */
+    @Transactional(readOnly = true)
+    public List<ClaimResponse> getPendingClaims() {
+        return claimRepo.findByStatus("PENDING").stream()
+            .map(ClaimResponse::from).toList();
     }
 
     private Map<String, Long> toLocationMap(List<Object[]> rows) {

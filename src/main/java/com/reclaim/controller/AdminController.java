@@ -50,8 +50,7 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(
-            itemRepo.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()))
-                .map(ItemResponse::from)
+            itemService.adminList(PageRequest.of(page, size, Sort.by("createdAt").descending()))
         );
     }
 
@@ -87,9 +86,6 @@ public class AdminController {
 
     @GetMapping("/claims")
     public ResponseEntity<List<ClaimResponse>> pendingClaims() {
-        return ResponseEntity.ok(
-            claimRepo.findByStatus("PENDING").stream()
-                .map(ClaimResponse::from).toList()
-        );
+        return ResponseEntity.ok(adminService.getPendingClaims());
     }
 }
