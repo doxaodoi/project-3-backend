@@ -49,4 +49,13 @@ public class ConversationController {
         convService.markRead(id, user);
         return ResponseEntity.noContent().build();
     }
+
+    /** Mark the whole conversation read (called when the user opens it). */
+    @PatchMapping("/{id}/read")
+    public ResponseEntity<Void> markConversationRead(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        convService.markConversationRead(id, user);
+        return ResponseEntity.noContent().build();
+    }
 }

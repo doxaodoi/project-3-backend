@@ -104,4 +104,23 @@ public class ConversationService {
             msgRepo.save(msg);
         }
     }
+
+    /**
+     * Mark a whole conversation read for the given user: every incoming
+     * message and any message notifications that point at it. Called when the
+     * user opens the thread, so the unread dot and bell both clear.
+     */
+    @Transactional
+    public void markConversationRead(Long conversationId, User user) {
+        Conversation conv = convRepo.findById(conversationId)
+            .orElseThrow(() -> ApiException.notFound("Conversation"));
+
+        if (!conv.getUserA().getId().equals(user.getId())
+                && !conv.getUserB().getId().equals(user.getId())) {
+            throw ApiException.forbidden("Not a participant in this conversation");
+        }
+
+        msgRepo.markConversationRead(conversationId, user.getId());
+        notifRepo.markReadByLink(user.getId(), "/messages/" + conversationId);
+    }
 }

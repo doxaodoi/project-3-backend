@@ -16,4 +16,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Modifying
     @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead = false")
     void markAllRead(@Param("userId") Long userId);
+
+    /** Mark a user's notifications pointing at a given link as read. */
+    @Modifying
+    @Query("UPDATE Notification n SET n.isRead = true "
+         + "WHERE n.user.id = :userId AND n.link = :link AND n.isRead = false")
+    void markReadByLink(@Param("userId") Long userId, @Param("link") String link);
 }
