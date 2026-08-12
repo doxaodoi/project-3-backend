@@ -11,6 +11,8 @@ import com.reclaim.exception.ApiException;
 import com.reclaim.repository.ConversationRepository;
 import com.reclaim.repository.MessageRepository;
 import com.reclaim.repository.NotificationRepository;
+import com.reclaim.websocket.NewMessageEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,13 +25,16 @@ public class ConversationService {
     private final ConversationRepository convRepo;
     private final MessageRepository msgRepo;
     private final NotificationRepository notifRepo;
+    private final ApplicationEventPublisher events;
 
     public ConversationService(ConversationRepository convRepo,
                                MessageRepository msgRepo,
-                               NotificationRepository notifRepo) {
+                               NotificationRepository notifRepo,
+                               ApplicationEventPublisher events) {
         this.convRepo = convRepo;
         this.msgRepo = msgRepo;
         this.notifRepo = notifRepo;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -91,7 +96,16 @@ public class ConversationService {
             .link("/messages/" + conversationId)
             .build());
 
-        return MessageResponse.from(msg);
+        MessageResponse dto = MessageResponse.from(msg);
+
+        // Push to both participants over WebSocket, after this transaction commits.
+        events.publishEvent(new NewMessageEvent(
+            conversationId,
+            List.of(sender.getId(), recipient.getId()),
+            dto
+        ));
+
+        return dto;
     }
 
     @Transactional
