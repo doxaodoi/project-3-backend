@@ -1,0 +1,23 @@
+# One-command restore of the Reclaim database into a local Postgres container.
+#
+#   docker compose -f database/docker-compose.yml up
+#
+# The backup SQL is mounted into the init directory, so the schema + seed data
+# are loaded automatically the first time the volume is created. Connect with:
+#   psql postgresql://postgres:reclaim@localhost:5432/reclaim
+services:
+  reclaim-db:
+    image: postgres:16-alpine
+    container_name: reclaim-db
+    environment:
+      POSTGRES_DB: reclaim
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: reclaim
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./reclaim_full_backup.sql:/docker-entrypoint-initdb.d/01_reclaim_full_backup.sql:ro
+      - reclaim_pgdata:/var/lib/postgresql/data
+
+volumes:
+  reclaim_pgdata:
