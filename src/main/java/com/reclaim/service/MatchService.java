@@ -50,31 +50,36 @@ public class MatchService {
             if (score >= 0.25) { // minimum 25% match threshold
                 Item lostItem = "LOST".equals(newItem.getType()) ? newItem : candidate;
                 Item foundItem = "FOUND".equals(newItem.getType()) ? newItem : candidate;
+                int pct = (int) Math.round(score * 100);
+                String why = buildExplanation(newItem, candidate);
 
                 Match match = Match.builder()
                     .lostItem(lostItem)
                     .foundItem(foundItem)
                     .score(score)
+                    .aiExplanation(why)
                     .build();
                 matchRepo.save(match);
 
-                // Notify the other item's reporter
+                // Notify the candidate's reporter — name the counterpart (the new item)
                 notifRepo.save(Notification.builder()
                     .user(candidate.getReporter())
                     .type("MATCH")
-                    .title("New match found")
-                    .body("A possible match was found for your " + candidate.getType().toLowerCase()
-                          + " item: " + candidate.getTitle())
+                    .title("New " + pct + "% match")
+                    .body("Your " + candidate.getType().toLowerCase() + " \"" + candidate.getTitle()
+                          + "\" matches a " + newItem.getType().toLowerCase() + " item: \""
+                          + newItem.getTitle() + "\"")
                     .link("/items/" + candidate.getId() + "/matches")
                     .build());
 
-                // Also notify the new item's reporter
+                // Notify the new item's reporter — name the counterpart (the candidate)
                 notifRepo.save(Notification.builder()
                     .user(newItem.getReporter())
                     .type("MATCH")
-                    .title("Match found")
-                    .body("A possible match was found for your " + newItem.getType().toLowerCase()
-                          + " item: " + newItem.getTitle())
+                    .title("New " + pct + "% match")
+                    .body("Your " + newItem.getType().toLowerCase() + " \"" + newItem.getTitle()
+                          + "\" matches a " + candidate.getType().toLowerCase() + " item: \""
+                          + candidate.getTitle() + "\"")
                     .link("/items/" + newItem.getId() + "/matches")
                     .build());
 
@@ -130,6 +135,50 @@ public class MatchService {
         }
 
         return Math.min(score, 1.0);
+    }
+
+    /**
+     * Plain-language reason a match was suggested, derived from the same
+     * components as the score. Populates each match so users see *why*, even
+     * without an external AI service configured.
+     */
+    private String buildExplanation(Item a, Item b) {
+        java.util.List<String> reasons = new java.util.ArrayList<>();
+
+        if (a.getCategory() != null && b.getCategory() != null
+                && a.getCategory().getId().equals(b.getCategory().getId())) {
+            reasons.add("same category");
+        }
+
+        if (a.getLatitude() != null && b.getLatitude() != null) {
+            double d = haversine(a.getLatitude(), a.getLongitude(),
+                                 b.getLatitude(), b.getLongitude());
+            if (d < 0.1) reasons.add("reported within 100m of each other");
+            else if (d < 0.5) reasons.add("reported within 500m of each other");
+            else if (d < 1.0) reasons.add("reported within 1km of each other");
+        } else if (a.getLocation() != null && b.getLocation() != null
+                && a.getLocation().getId().equals(b.getLocation().getId())) {
+            reasons.add("same location");
+        }
+
+        double sim = textSimilarity(
+            (a.getTitle() + " " + orEmpty(a.getDescription())).toLowerCase(),
+            (b.getTitle() + " " + orEmpty(b.getDescription())).toLowerCase());
+        if (sim >= 0.2) reasons.add("similar description");
+
+        if (a.getColor() != null && a.getColor().equalsIgnoreCase(b.getColor())) {
+            reasons.add("matching colour");
+        }
+        if (a.getBrand() != null && a.getBrand().equalsIgnoreCase(b.getBrand())) {
+            reasons.add("matching brand");
+        }
+
+        if (reasons.isEmpty()) return "Some overlapping details between the two reports.";
+        String joined = reasons.size() == 1
+            ? reasons.get(0)
+            : String.join(", ", reasons.subList(0, reasons.size() - 1))
+              + " and " + reasons.get(reasons.size() - 1);
+        return Character.toUpperCase(joined.charAt(0)) + joined.substring(1) + ".";
     }
 
     /** Haversine distance in km. */

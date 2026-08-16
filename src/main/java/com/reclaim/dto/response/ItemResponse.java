@@ -31,14 +31,19 @@ public class ItemResponse {
     private List<PhotoResponse> photos;
     private UserResponse reporter;
     private int matchCount;
+    private Integer topMatchScore; // best match as a percentage (0-100), null if none
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public static ItemResponse from(Item item) {
-        return from(item, 0);
+        return from(item, 0, null);
     }
 
     public static ItemResponse from(Item item, int matchCount) {
+        return from(item, matchCount, null);
+    }
+
+    public static ItemResponse from(Item item, int matchCount, Integer topMatchScore) {
         return ItemResponse.builder()
             .id(item.getId())
             .type(item.getType())
@@ -60,6 +65,7 @@ public class ItemResponse {
             .photos(item.getPhotos().stream().map(PhotoResponse::from).collect(Collectors.toList()))
             .reporter(UserResponse.from(item.getReporter()))
             .matchCount(matchCount)
+            .topMatchScore(topMatchScore)
             .createdAt(item.getCreatedAt())
             .updatedAt(item.getUpdatedAt())
             .build();

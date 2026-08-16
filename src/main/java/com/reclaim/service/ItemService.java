@@ -49,8 +49,8 @@ public class ItemService {
                                      Long locationId, String q, Pageable pageable) {
         return itemRepo.search(type, status, categoryId, locationId, q, pageable)
             .map(item -> {
-                int mc = matchRepo.findByItemId(item.getId()).size();
-                return ItemResponse.from(item, mc);
+                List<Match> ms = matchRepo.findByItemId(item.getId());
+                return ItemResponse.from(item, ms.size(), topScore(ms));
             });
     }
 
@@ -58,8 +58,18 @@ public class ItemService {
     public ItemResponse getById(Long id) {
         Item item = itemRepo.findById(id)
             .orElseThrow(() -> ApiException.notFound("Item"));
-        int mc = matchRepo.findByItemId(id).size();
-        return ItemResponse.from(item, mc);
+        List<Match> ms = matchRepo.findByItemId(id);
+        return ItemResponse.from(item, ms.size(), topScore(ms));
+    }
+
+    /** Best match score across the given matches, as a percentage (0-100), or null. */
+    private Integer topScore(List<Match> matches) {
+        return matches.stream()
+            .map(Match::getScore)
+            .filter(java.util.Objects::nonNull)
+            .max(Double::compareTo)
+            .map(s -> (int) Math.round(s * 100))
+            .orElse(null);
     }
 
     /**
@@ -217,8 +227,8 @@ public class ItemService {
     public List<ItemResponse> getMyItems(User user) {
         return itemRepo.findByReporterId(user.getId()).stream()
             .map(item -> {
-                int mc = matchRepo.findByItemId(item.getId()).size();
-                return ItemResponse.from(item, mc);
+                List<Match> ms = matchRepo.findByItemId(item.getId());
+                return ItemResponse.from(item, ms.size(), topScore(ms));
             })
             .toList();
     }
