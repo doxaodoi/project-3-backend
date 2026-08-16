@@ -159,6 +159,12 @@ public class ItemService {
         }
         if (req.getLocationId() != null) {
             item.setLocation(locationRepo.findById(req.getLocationId()).orElse(null));
+        } else if (req.getLocationName() != null && !req.getLocationName().isBlank()) {
+            // Free-text location: find existing or create new (mirrors create()).
+            Location loc = locationRepo.findByNameIgnoreCase(req.getLocationName().trim())
+                .orElseGet(() -> locationRepo.save(
+                    Location.builder().name(req.getLocationName().trim()).build()));
+            item.setLocation(loc);
         }
 
         return ItemResponse.from(itemRepo.save(item));
